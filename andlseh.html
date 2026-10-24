@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>무인도 30일 생존기</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Malgun Gothic','Apple SD Gothic Neo',sans-serif;background:#0e1b24;color:#eaf2f5;min-height:100vh}
+button{font-family:inherit;cursor:pointer;border:none;border-radius:8px;padding:8px 12px;background:#2c7a7b;color:#fff;font-size:14px;transition:.15s}
+button:hover:not(:disabled){filter:brightness(1.2);transform:translateY(-1px)}
+button:disabled{background:#33444d;color:#78909c;cursor:not-allowed}
+#wrap{max-width:1100px;margin:0 auto;padding:10px}
+header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+header h1{font-size:20px}
+header .btns button{background:#37474f;font-size:12px;padding:6px 10px}
+#scene{height:130px;border-radius:12px;position:relative;overflow:hidden;display:flex;align-items:flex-end;justify-content:center;font-size:38px;padding-bottom:6px;margin-bottom:8px;transition:background .5s}
+.w-clear{background:linear-gradient(#4fc3f7,#b3e5fc 60%,#f6d99c 61%)}
+.w-cloudy{background:linear-gradient(#90a4ae,#cfd8dc 60%,#e0c58f 61%)}
+.w-rain{background:linear-gradient(#546e7a,#78909c 60%,#b9a173 61%)}
+.w-storm{background:linear-gradient(#263238,#455a64 60%,#8d7b58 61%)}
+.w-heat{background:linear-gradient(#ff8a65,#ffcc80 60%,#f4c06a 61%)}
+.rain::after{content:"";position:absolute;inset:0;background:repeating-linear-gradient(105deg,transparent 0 6px,rgba(255,255,255,.35) 6px 7px);animation:rain .4s linear infinite;pointer-events:none}
+.storm::before{content:"";position:absolute;inset:0;background:rgba(255,255,255,.6);animation:flash 4s infinite;pointer-events:none}
+@keyframes rain{to{background-position:-20px 40px}}
+@keyframes flash{0%,92%,100%{opacity:0}94%{opacity:.7}96%{opacity:0}98%{opacity:.5}}
+#scene .badge{position:absolute;top:8px;left:10px;background:rgba(0,0,0,.45);padding:4px 10px;border-radius:20px;font-size:14px}
+#scene .badge2{position:absolute;top:8px;right:10px;background:rgba(0,0,0,.45);padding:4px 10px;border-radius:20px;font-size:13px}
+#stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:8px}
+.stat{background:#17303c;border-radius:10px;padding:8px}
+.stat .lb{font-size:12px;display:flex;justify-content:space-between;margin-bottom:4px}
+.bar{height:10px;background:#0b1419;border-radius:6px;overflow:hidden}
+.bar i{display:block;height:100%;transition:width .3s}
+#main{display:grid;grid-template-columns:1.1fr 1fr;gap:8px}
+.panel{background:#17303c;border-radius:12px;padding:10px}
+.panel h3{font-size:14px;margin-bottom:8px;color:#80deea}
+#areas{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px}
+#areas button{background:#26424f;font-size:13px}
+#areas button.on{background:#f9a825;color:#222;font-weight:bold}
+.adesc{font-size:12px;color:#b0bec5;margin-bottom:8px}
+.act{display:flex;justify-content:space-between;align-items:center;gap:8px;width:100%;text-align:left;margin-bottom:6px;background:#26424f}
+.act small{color:#b0e0e6;display:block;font-size:11px;font-weight:normal}
+.act .c{white-space:nowrap;font-size:12px;color:#ffd54f}
+.tabs{display:flex;gap:6px;margin-bottom:8px}
+.tabs button{flex:1;background:#26424f}
+.tabs button.on{background:#f9a825;color:#222;font-weight:bold}
+.inv{display:grid;grid-template-columns:repeat(2,1fr);gap:6px}
+.it{background:#0f222b;border-radius:8px;padding:6px 8px;display:flex;justify-content:space-between;align-items:center;font-size:13px}
+.it.zero{opacity:.35}
+.it button{padding:3px 8px;font-size:11px;background:#2e7d32}
+.status{font-size:12px;color:#b0bec5;margin-top:8px;line-height:1.7}
+.rc{background:#0f222b;border-radius:8px;padding:8px;margin-bottom:6px}
+.rc .t{display:flex;justify-content:space-between;align-items:center;font-size:14px}
+.rc .d{font-size:11px;color:#b0bec5;margin:3px 0}
+.rc .cs{font-size:12px}
+.ok{color:#a5d6a7}.no{color:#ef9a9a}
+.done{display:inline-block;background:#1b5e20;border-radius:12px;padding:2px 8px;font-size:11px;margin:2px}
+#log{margin-top:8px;max-height:170px;overflow:auto;font-size:13px;line-height:1.6}
+#log div{border-bottom:1px solid #22414f;padding:2px 0}
+#log .bad{color:#ff8a80}#log .good{color:#b9f6ca}#log .sys{color:#ffd180}
+#ov{position:fixed;inset:0;background:rgba(0,0,0,.7);display:none;align-items:center;justify-content:center;z-index:10;padding:14px}
+#ov.show{display:flex}
+#md{background:#17303c;border:2px solid #f9a825;border-radius:14px;padding:18px;max-width:460px;width:100%;max-height:90vh;overflow:auto}
+#md h2{margin-bottom:10px;font-size:19px}
+#mb{font-size:14px;line-height:1.7;margin-bottom:14px}
+#mbtn{display:flex;flex-direction:column;gap:8px}
+#mbtn button{padding:10px}
+@media(max-width:760px){#main{grid-template-columns:1fr}#stats{grid-template-columns:repeat(2,1fr)}}
+</style>
+</head>
+<body>
+<div id="wrap">
+  <header>
+    <h1>🏝️ 무인도 30일 생존기</h1>
+    <div class="btns"><button onclick="if(confirm('새 게임을 시작할까요? 저장된 진행이 사라집니다.'))newGame()">🔄 새 게임</button></div>
+  </header>
+  <div id="scene"><div class="badge" id="sc-day"></div><div class="badge2" id="sc-w"></div><div id="sc-art"></div></div>
+  <div id="stats">
+    <div class="stat"><div class="lb"><span>❤️ 체력</span><span id="v-hp"></span></div><div class="bar"><i id="b-hp" style="background:#ef5350"></i></div></div>
+    <div class="stat"><div class="lb"><span>🍖 포만감</span><span id="v-food"></span></div><div class="bar"><i id="b-food" style="background:#ffa726"></i></div></div>
+    <div class="stat"><div class="lb"><span>💧 수분</span><span id="v-water"></span></div><div class="bar"><i id="b-water" style="background:#29b6f6"></i></div></div>
+    <div class="stat"><div class="lb"><span>⏱ 남은 시간</span><span id="v-time"></span></div><div class="bar"><i id="b-time" style="background:#ab47bc"></i></div></div>
+  </div>
+  <div id="main">
+    <div class="panel">
+      <h3>📍 장소 · 행동</h3>
+      <div id="areas"></div>
+      <div class="adesc" id="adesc"></div>
+      <div id="acts"></div>
+    </div>
+    <div class="panel">
+      <div class="tabs"><button id="tab-inv" onclick="S.tab='inv';render()">🎒 가방</button><button id="tab-craft" onclick="S.tab='craft';render()">🔨 제작</button></div>
+      <div id="side"></div>
+    </div>
+  </div>
+  <div class="panel" style="margin-top:8px"><h3>📜 일지</h3><div id="log"></div></div>
+</div>
+
+<div id="ov"><div id="md"><h2 id="mt"></h2><div id="mb"></div><div id="mbtn"></div></div></div>
+
+<script>
+/* ===== 기본 유틸 ===== */
+const KEY='island30_save';
+let S;
+const $=id=>document.getElementById(id);
+const clamp=(v,a=0,b=100)=>Math.max(a,Math.min(b,v));
+const rnd=(a,b)=>Math.floor(Math.random()*(b-a+1))+a;
+const pick=a=>a[Math.floor(Math.random()*a.length)];
+
+/* ===== 데이터 ===== */
+const WEATHER={clear:{n:'맑음',i:'☀️'},cloudy:{n:'흐림',i:'☁️'},rain:{n:'비',i:'🌧️'},storm:{n:'폭풍',i:'⛈️'},heat:{n:'폭염',i:'🥵'}};
+const ITEMS={
+  wood:{n:'나무',i:'🪵'},stone:{n:'돌',i:'🪨'},fiber:{n:'섬유',i:'🧵'},metal:{n:'금속 조각',i:'🔩'},
+  berry:{n:'열매',i:'🍓',use:{food:8},spoil:1},
+  shellfish:{n:'조개',i:'🐚',use:{food:10},spoil:1},
+  fish:{n:'생선(날것)',i:'🐟',use:{food:14},risk:.2,spoil:1},
+  meat:{n:'고기(날것)',i:'🥩',use:{food:18},risk:.25,spoil:1},
+  cfish:{n:'구운 생선',i:'🍢',use:{food:32},spoil:1},
+  cmeat:{n:'구운 고기',i:'🍖',use:{food:42,hp:3},spoil:1},
+  coconut:{n:'코코넛',i:'🥥',use:{food:5,water:18}},
+  water:{n:'깨끗한 물',i:'💧',use:{water:30}},
+  herb:{n:'약초',i:'🌿',use:{hp:20}}
+};
+const AREAS={
+  camp:{n:'캠프',i:'🏕️',d:'휴식, 요리, 하루를 마무리하는 곳입니다.'},
+  beach:{n:'해변',i:'🏖️',d:'조개와 유목, 물고기가 있습니다. 비교적 안전합니다.'},
+  forest:{n:'정글',i:'🌴',d:'나무, 열매, 약초, 사냥감이 있지만 위험도 있습니다.'},
+  rocks:{n:'바위언덕',i:'⛰️',d:'돌의 주요 산지입니다. 깊이 탐험하면 무언가 발견할지도...'},
+  cave:{n:'동굴',i:'🕳️',d:'어둡고 위험하지만 귀한 금속이 잠들어 있습니다.',lock:()=>!S.unlocked.cave,lt:'바위언덕을 탐험하면 발견'},
+  falls:{n:'폭포',i:'💦',d:'맑은 물이 끝없이 흐르는 안전한 수원지입니다.',lock:()=>!S.unlocked.falls,lt:'정글을 탐험하면 발견'}
+};
+
+/* ===== 상태 ===== */
+function pickWeather(d){
+  if(d===10||d===20)return'storm'; if(d===25)return'heat';
+  const r=Math.random();
+  if(r<.38)return'clear'; if(r<.58)return'cloudy'; if(r<.8)return'rain'; if(r<.9)return'heat'; return'storm';
+}
+function setForecast(){S.forecast=Math.random()<.75?S.nextWeather:pickWeather(0);}
+function newGame(){
+  S={day:1,time:12,hp:100,food:80,water:80,inv:{wood:0,stone:0,fiber:0},
+    tools:{axe:0,pick:0,rod:0,spear:0},
+    built:{fire:false,shelter:0,barrel:false,rack:false,signal:false,raft:false},
+    explore:{forest:0,rocks:0},unlocked:{cave:false,falls:false},
+    weather:'clear',nextWeather:pickWeather(2),forecast:'clear',
+    area:'camp',tab:'inv',log:[],rescue:0,signalToday:false,usedEv:[],over:false,cause:''};
+  setForecast(); save(); render();
+  modal('🏝️ 무인도에 표류했다','배가 난파되어 낯선 무인도에 홀로 떠밀려왔다.<br><br><b>30일</b>만 버티면 구조선이 지나갈 것이다.<br><br>• 하루는 <b>12시간</b>, 행동마다 시간이 소모됩니다.<br>• 시간이 다 되면 밤이 되고 하루가 지납니다.<br>• 자원을 모아 도구·집·모닥불을 만들고,<br>&nbsp;&nbsp;날씨와 체력, 식량·물을 관리하세요.<br>• 탐험으로 새로운 장소를 발견할 수 있습니다.',[{t:'생존을 시작한다!'}]);
+  log('🌅 1일차 아침. 생존이 시작되었다.','sys');
+}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+function load(){try{const d=localStorage.getItem(KEY);if(d){S=JSON.parse(d);return true}}catch(e){}return false}
+
+/* ===== 모달 ===== */
+function modal(title,body,btns){
+  $('mt').innerHTML=title;$('mb').innerHTML=body;const b=$('mbtn');b.innerHTML='';
+  btns.forEach(x=>{const e=document.createElement('button');e.textContent=x.t;
+    e.onclick=()=>{$('ov').classList.remove('show');x.fn&&x.fn()};b.appendChild(e)});
+  $('ov').classList.add('show');
+}
+
+/* ===== 로그/스탯 ===== */
+function log(m,t){
+  if(!t){t=/체력 -|실패|다쳤|잃었|쓰러|굶주|탈수/.test(m)?'bad':/획득|얻었|발견|\+/.test(m)?'good':''}
+  S.log.unshift({m,t});if(S.log.length>40)S.log.pop();
+}
+function hurt(n,cause){S.hp=Math.max(0,S.hp-n);if(cause)S.cause=cause}
+function heal(n){S.hp=clamp(S.hp+n)}
+function gain(k,n){if(n<=0)return'';S.inv[k]=(S.inv[k]||0)+n;return ITEMS[k].i+ITEMS[k].n+' +'+n}
+function has(k,n){return(S.inv[k]||0)>=n}
+function spend(c){
+  S.time-=c;
+  S.food=clamp(S.food-1.5*c);
+  S.water=clamp(S.water-(S.weather==='heat'?3:2)*c);
+  if(S.food<=0){hurt(4,'굶주림');log('🍽️ 굶주려서 힘이 빠진다! 체력 -4')}
+  if(S.water<=0){hurt(5,'탈수');log('🏜️ 목이 말라 쓰러질 것 같다! 체력 -5')}
+}
+function checkDeath(){
+  if(S.hp<=0&&!S.over){
+    S.over=true;localStorage.removeItem(KEY);render();
+    modal('💀 생존 실패',`<b>${S.day}일차</b>에 <b>${S.cause||'알 수 없는 이유'}</b>(으)로 쓰러졌다...<br><br>다음엔 더 잘 준비해 보자.`,[{t:'다시 도전',fn:newGame}]);
+    return true;
+  }
+  return S.over;
+}
+
+/* ===== 행동 ===== */
+function A(o){return o}
+const ACTIONS=[
+ // 캠프
+ A({id:'sleep',area:'camp',i:'😴',n:'잠자기 (하루 마무리)',d:'남은 시간만큼 체력을 회복하고 밤을 보냅니다.',cost:0,special:true}),
+ A({id:'rest',area:'camp',i:'🛌',n:'휴식하기',d:'체력 회복 (집이 좋을수록 효과 ↑)',cost:2,
+   run(){const h=8+S.built.shelter*3;heal(h);return `편히 쉬었다. 체력 +${h}`}}),
+ A({id:'cookf',area:'camp',i:'🍢',n:'생선 굽기',d:'날 생선 최대 2마리 → 구운 생선 (나무 1)',cost:1,
+   req:()=>!S.built.fire?'모닥불이 필요합니다':!has('fish',1)?'생선이 없습니다':!has('wood',1)?'나무가 없습니다':null,
+   run(){const n=Math.min(2,S.inv.fish);S.inv.fish-=n;S.inv.wood--;return '생선을 구웠다. '+gain('cfish',n)}}),
+ A({id:'cookm',area:'camp',i:'🍖',n:'고기 굽기',d:'날 고기 최대 2개 → 구운 고기 (나무 1)',cost:1,
+   req:()=>!S.built.fire?'모닥불이 필요합니다':!has('meat',1)?'고기가 없습니다':!has('wood',1)?'나무가 없습니다':null,
+   run(){const n=Math.min(2,S.inv.meat);S.inv.meat-=n;S.inv.wood--;return '고기를 구웠다. '+gain('cmeat',n)}}),
+ A({id:'signal',area:'camp',i:'🚩',n:'봉화 피우기',d:'구조 신호 +1 (하루 1회, 나무 2)',cost:1,
+   req:()=>!S.built.signal?'봉화를 먼저 제작하세요':S.signalToday?'오늘은 이미 피웠습니다':!has('wood',2)?'나무가 부족합니다':null,
+   run(){S.inv.wood-=2;S.signalToday=true;S.rescue++;return `봉화에서 연기가 높이 솟는다! 구조 신호 ${S.rescue}회 누적.`}}),
+ A({id:'raft',area:'camp',i:'🛶',n:'뗏목으로 탈출 시도',d:'15일차 이후 가능. 성공하면 즉시 탈출!',cost:3,
+   req:()=>!S.built.raft?'뗏목을 먼저 제작하세요':S.day<15?'15일차부터 가능합니다':null,
+   run(){
+     const wm={clear:15,cloudy:10,rain:0,heat:0,storm:-40}[S.weather];
+     const ch=clamp(55+S.hp*.25+wm,10,95);
+     if(Math.random()*100<ch){ending('escape');return ''}
+     S.built.raft=false;hurt(30,'뗏목 침몰');return `🌊 뗏목이 파도에 부서졌다! 간신히 해변으로 돌아왔다. 체력 -30 (성공률 ${Math.round(ch)}%였다)`;
+   }}),
+ // 해변
+ A({id:'drift',area:'beach',i:'🪵',n:'유목 줍기',d:'나무 1~2, 가끔 섬유',cost:1,out:true,
+   run(){const m=[gain('wood',rnd(1,2))];if(Math.random()<.3)m.push(gain('fiber',1));return '해변을 뒤져 '+m.filter(Boolean).join(', ')+' 획득'}}),
+ A({id:'shell',area:'beach',i:'🐚',n:'조개 줍기',d:'조개 1~3 (식량)',cost:1,out:true,
+   run(){return '갯벌에서 '+gain('shellfish',rnd(1,3))+' 획득'}}),
+ A({id:'fish',area:'beach',i:'🎣',n:'낚시하기',d:'낚싯대가 있으면 확률 ↑ (비 오는 날 유리)',cost:2,out:true,
+   run(){
+     const rod=S.tools.rod;let p=rod?.75:.15;if(S.weather==='rain')p+=.1;
+     if(Math.random()<p){const n=rod?rnd(1,2)+(S.weather==='rain'?1:0):1;return '입질이 왔다! '+gain('fish',n)+' 획득'}
+     return '아무것도 낚지 못했다. 실패'}}),
+ A({id:'rain',area:'beach',i:'🌧️',n:'빗물 마시기',d:'비 오는 날 수분 +25',cost:1,out:true,
+   req:()=>(S.weather==='rain'||S.weather==='storm')?null:'비가 올 때만 가능합니다',
+   run(){S.water=clamp(S.water+25);return '시원한 빗물을 마셨다. 수분 +25'}}),
+ // 정글
+ A({id:'twig',area:'forest',i:'🌿',n:'나뭇가지 줍기',d:'나무 1~2',cost:1,out:true,
+   run(){return '떨어진 가지를 모았다. '+gain('wood',rnd(1,2))+' 획득'}}),
+ A({id:'chop',area:'forest',i:'🪓',n:'나무 베기',d:'도끼 필요. 나무 대량 획득 (금속 도끼는 더 많이)',cost:2,out:true,
+   req:()=>S.tools.axe?null:'도끼가 필요합니다',
+   run(){const n=rnd(2,4)+(S.tools.axe-1)*2;return '쿵! 쿵! '+gain('wood',n)+' 획득'}}),
+ A({id:'fiber',area:'forest',i:'🧵',n:'덩굴·섬유 채집',d:'섬유 1~3',cost:1,out:true,
+   run(){return '질긴 덩굴을 모았다. '+gain('fiber',rnd(1,3))+' 획득'}}),
+ A({id:'berry',area:'forest',i:'🍓',n:'열매 따기',d:'열매 1~3 (식량)',cost:1,out:true,
+   run(){
+     if(Math.random()<.08){hurt(6,'독 열매');return '쓴 열매를 잘못 먹었다! 체력 -6'}
+     return '새빨간 열매를 땄다. '+gain('berry',rnd(1,3))+' 획득'}}),
+ A({id:'coco',area:'forest',i:'🥥',n:'코코넛 따기',d:'코코넛 1~2 (수분+식량)',cost:2,out:true,
+   run(){return '야자나무를 올랐다. '+gain('coconut',rnd(1,2))+' 획득'}}),
+ A({id:'herb',area:'forest',i:'🌱',n:'약초 찾기',d:'약초 0~2 (체력 회복)',cost:2,out:true,
+   run(){const n=rnd(0,2);return n?'약초를 찾았다! '+gain('herb',n)+' 획득':'약초를 찾지 못했다. 실패'}}),
+ A({id:'hunt',area:'forest',i:'🏹',n:'사냥하기',d:'창 필요. 고기 1~2 (위험)',cost:3,out:true,
+   req:()=>S.tools.spear?null:'창이 필요합니다',
+   run(){
+     let m;
+     if(Math.random()<.65)m='사냥 성공! '+gain('meat',rnd(1,2))+' 획득';else m='사냥감을 놓쳤다. 실패';
+     if(Math.random()<.25){hurt(8,'야생 동물');m+='\n반격에 당했다! 체력 -8'}
+     return m}}),
+ A({id:'xforest',area:'forest',i:'🧭',n:'정글 깊이 탐험',d:'새로운 장소를 발견할지도 모릅니다',cost:3,out:true,
+   run(){
+     S.explore.forest++;let m;const r=Math.random();
+     if(r<.5){const k=pick(['berry','coconut','herb','wood','fiber']);m='탐험 중 '+gain(k,rnd(1,3))+' 발견!'}
+     else if(r<.7){hurt(8,'독충');m='독충에 쏘였다! 체력 -8'}else m='특별한 것은 발견하지 못했다.';
+     if(S.explore.forest===3){S.unlocked.falls=true;m+='\n💦 숲 속에서 폭포를 발견했다! (폭포 지역 해금)'}
+     return m}}),
+ // 바위언덕
+ A({id:'stone',area:'rocks',i:'🪨',n:'돌 줍기',d:'돌 1~2',cost:1,out:true,
+   run(){return '널린 돌을 주웠다. '+gain('stone',rnd(1,2))+' 획득'}}),
+ A({id:'mine',area:'rocks',i:'⛏️',n:'바위 캐기',d:'곡괭이 필요. 돌 대량 획득',cost:2,out:true,
+   req:()=>S.tools.pick?null:'곡괭이가 필요합니다',
+   run(){const n=rnd(3,5)+(S.tools.pick-1)*2;return '땅! 땅! '+gain('stone',n)+' 획득'}}),
+ A({id:'xrocks',area:'rocks',i:'🧭',n:'언덕 깊이 탐험',d:'새로운 장소를 발견할지도 모릅니다',cost:3,out:true,
+   run(){
+     S.explore.rocks++;let m;const r=Math.random();
+     if(r<.45){m='탐험 중 '+gain('stone',rnd(2,4))+' 발견!';if(Math.random()<.12)m+=' 그리고 '+gain('metal',1)+'!'}
+     else if(r<.65){hurt(8,'낙석');m='낙석이 떨어졌다! 체력 -8'}else m='특별한 것은 발견하지 못했다.';
+     if(S.explore.rocks===3){S.unlocked.cave=true;m+='\n🕳️ 바위틈에서 동굴 입구를 발견했다! (동굴 해금)'}
+     return m}}),
+ // 동굴
+ A({id:'metal',area:'cave',i:'🔩',n:'금속 조각 캐기',d:'곡괭이 필요. 금속 0~2 (박쥐 주의)',cost:3,out:true,
+   req:()=>S.tools.pick?null:'곡괭이가 필요합니다',
+   run(){
+     const n=rnd(0,2)+(S.tools.pick>1?1:0);let m=n?'난파선의 잔해 같은 금속을 찾았다. '+gain('metal',n)+' 획득':'쓸만한 금속이 없었다. 실패';
+     if(Math.random()<.3){hurt(6,'동굴 박쥐');m+='\n박쥐 떼가 습격했다! 체력 -6'}return m}}),
+ A({id:'ore',area:'cave',i:'🪨',n:'암석 캐기',d:'곡괭이 필요. 돌 3~6',cost:2,out:true,
+   req:()=>S.tools.pick?null:'곡괭이가 필요합니다',
+   run(){return '단단한 암석을 캤다. '+gain('stone',rnd(3,6))+' 획득'}}),
+ // 폭포
+ A({id:'drink',area:'falls',i:'💦',n:'폭포물 마시기',d:'수분 +35',cost:1,out:true,
+   run(){S.water=clamp(S.water+35);return '시원한 폭포물! 수분 +35'}}),
+ A({id:'fill',area:'falls',i:'🫙',n:'물 담아가기',d:'깨끗한 물 2~3 (물통이 있으면 +2)',cost:1,out:true,
+   run(){return '물을 길어 담았다. '+gain('water',rnd(2,3)+(S.built.barrel?2:0))+' 획득'}}),
+ A({id:'ffish',area:'falls',i:'🐟',n:'폭포 낚시',d:'낚싯대 필요. 생선 1~3',cost:2,out:true,
+   req:()=>S.tools.rod?null:'낚싯대가 필요합니다',
+   run(){return '폭포 아래 물고기가 많다! '+gain('fish',rnd(1,3))+' 획득'}})
+];
+
+function perform(id){
+  if(S.over)return;const a=ACTIONS.find(x=>x.id===id);
+  if(a.special){sleep();return}
+  const cost=a.cost+((S.weather==='storm'&&a.out)?1:0);
+  if(S.time<cost){log('⏱ 시간이 부족하다. 잠을 자자.','sys');render();return}
+  const m=a.run();
+  if(S.over)return;
+  log(m);spend(cost);
+  if(S.weather==='storm'&&a.out&&Math.random()<.4){hurt(6,'폭풍');log('⛈️ 폭풍에 휘말려 다쳤다! 체력 -6')}
+  afterAction();
+}
+function afterAction(){
+  if(checkDeath())return;
+  if(S.time<=0){log('🌙 해가 저물었다...','sys');endDay()}else{save();render()}
+}
+function sleep(){
+  if(S.time>0){heal(S.time);log(`😴 일찍 잠들어 체력 +${S.time}`,'good')}
+  S.time=0;endDay();
+}
+
+/* ===== 아이템 사용 ===== */
+function useItem(k){
+  if(!has(k,1)||S.over)return;const it=ITEMS[k];S.inv[k]--;let m=[];
+  if(it.use.food){S.food=clamp(S.food+it.use.food);m.push('포만감 +'+it.use.food)}
+  if(it.use.water){S.water=clamp(S.water+it.use.water);m.push('수분 +'+it.use.water)}
+  if(it.use.hp){heal(it.use.hp);m.push('체력 +'+it.use.hp)}
+  let t=`${it.i} ${it.n} 사용: ${m.join(', ')}`;
+  if(it.risk&&Math.random()<it.risk){hurt(8,'배탈');t+='\n으윽, 배탈이 났다! 체력 -8'}
+  log(t);if(!checkDeath()){save();render()}
+}
+
+/* ===== 제작 ===== */
+const RECIPES=[
+ {id:'axe',i:'🪓',n:'돌도끼',d:'나무 베기가 가능해집니다',t:1,cost:{wood:3,stone:2,fiber:2},avail:()=>true,done:()=>S.tools.axe>=1,apply:()=>S.tools.axe=1},
+ {id:'pick',i:'⛏️',n:'돌곡괭이',d:'바위·동굴 채굴이 가능해집니다',t:1,cost:{wood:2,stone:3,fiber:2},avail:()=>true,done:()=>S.tools.pick>=1,apply:()=>S.tools.pick=1},
+ {id:'rod',i:'🎣',n:'낚싯대',d:'낚시 성공률이 크게 오릅니다',t:1,cost:{wood:2,fiber:3},avail:()=>true,done:()=>S.tools.rod>=1,apply:()=>S.tools.rod=1},
+ {id:'spear',i:'🏹',n:'나무 창',d:'사냥이 가능해집니다',t:1,cost:{wood:2,stone:1,fiber:1},avail:()=>true,done:()=>S.tools.spear>=1,apply:()=>S.tools.spear=1},
+ {id:'fire',i:'🔥',n:'모닥불',d:'요리 가능, 밤 추위 감소 (매일 밤 나무 1 소모)',t:1,cost:{wood:5,stone:3},avail:()=>true,done:()=>S.built.fire,apply:()=>S.built.fire=true},
+ {id:'barrel',i:'🪣',n:'빗물통',d:'비 오는 날 자동으로 물을 모읍니다',t:1,cost:{wood:4,fiber:4},avail:()=>true,done:()=>S.built.barrel,apply:()=>S.built.barrel=true},
+ {id:'shelter1',i:'⛺',n:'움막',d:'밤의 추위·폭풍 피해 감소, 회복 ↑',t:2,cost:{wood:10,fiber:6},avail:()=>true,done:()=>S.built.shelter>=1,apply:()=>S.built.shelter=1},
+ {id:'rack',i:'🧺',n:'건조대',d:'식량이 상하는 속도가 크게 줄어듭니다',t:2,cost:{wood:6,fiber:3},avail:()=>S.built.shelter>=1,done:()=>S.built.rack,apply:()=>S.built.rack=true},
+ {id:'axe2',i:'🪓',n:'금속 도끼',d:'나무 획득량 대폭 증가',t:2,cost:{wood:3,stone:2,fiber:3,metal:2},avail:()=>S.tools.axe===1,done:()=>S.tools.axe>=2,apply:()=>S.tools.axe=2},
+ {id:'pick2',i:'⛏️',n:'금속 곡괭이',d:'돌·금속 획득량 증가',t:2,cost:{wood:3,stone:2,fiber:3,metal:2},avail:()=>S.tools.pick===1,done:()=>S.tools.pick>=2,apply:()=>S.tools.pick=2},
+ {id:'shelter2',i:'🛖',n:'통나무집',d:'폭풍 피해 크게 감소, 회복 ↑↑',t:3,cost:{wood:20,stone:10,fiber:10},avail:()=>S.built.shelter===1,done:()=>S.built.shelter>=2,apply:()=>S.built.shelter=2},
+ {id:'signal',i:'🚩',n:'봉화대',d:'구조 신호를 보낼 수 있습니다 (엔딩 등급 ↑)',t:2,cost:{wood:15,stone:5,fiber:5},avail:()=>S.built.fire,done:()=>S.built.signal,apply:()=>S.built.signal=true},
+ {id:'shelter3',i:'🏠',n:'튼튼한 석조집',d:'어떤 폭풍도 견디는 최고의 보금자리',t:3,cost:{wood:25,stone:25,fiber:10,metal:3},avail:()=>S.built.shelter===2,done:()=>S.built.shelter>=3,apply:()=>S.built.shelter=3},
+ {id:'raft',i:'🛶',n:'뗏목',d:'15일 이후 직접 탈출을 시도할 수 있습니다',t:3,cost:{wood:40,fiber:25,metal:3},avail:()=>S.built.shelter>=2,done:()=>S.built.raft,apply:()=>S.built.raft=true}
+];
+function canCraft(r){return Object.entries(r.cost).every(([k,n])=>has(k,n))&&S.time>=r.t}
+function craft(id){
+  if(S.over)return;const r=RECIPES.find(x=>x.id===id);if(!canCraft(r))return;
+  Object.entries(r.cost).forEach(([k,n])=>S.inv[k]-=n);
+  r.apply();log(`🔨 ${r.i} ${r.n} 제작 완료! 획득`,'good');spend(r.t);afterAction();
+}
+
+/* ===== 하루 마무리 ===== */
+function endDay(){
+  const L=[],sh=S.built.shelter;
+  S.food=clamp(S.food-8);S.water=clamp(S.water-8-(S.weather==='heat'?6:0));
+  L.push('🌙 밤새 허기와 갈증이 찾아왔다.');
+  let fireOn=false;
+  if(S.built.fire){
+    if(has('wood',1)){S.inv.wood--;fireOn=true;L.push('🔥 모닥불에 땔감 1개를 넣었다.')}
+    else L.push('🥶 땔감이 없어 모닥불이 꺼졌다!');
+  }
+  // 날씨 피해
+  let dmg=0,why='';
+  if(S.weather==='storm'){dmg=[15,8,3,0][sh];why='폭풍';if(dmg)L.push(`⛈️ 폭풍이 몰아쳤다! 체력 -${dmg}`);else L.push('⛈️ 폭풍이 몰아쳤지만 튼튼한 집 덕에 무사했다.')}
+  else if(S.weather==='rain'){if(sh===0){dmg=6;why='저체온증';L.push('🌧️ 비를 맞으며 밤을 보냈다. 체력 -6')}}
+  else if(!fireOn&&sh===0){dmg=3;why='추위';L.push('🥶 차가운 밤바람에 몸이 떨렸다. 체력 -3')}
+  if(fireOn&&dmg>0){dmg=Math.floor(dmg/2)}
+  if(dmg){hurt(dmg,why)}
+  // 빗물통
+  if(S.built.barrel&&(S.weather==='rain'||S.weather==='storm')){const n=S.weather==='storm'?5:3;S.inv.water=(S.inv.water||0)+n;L.push(`🪣 빗물통에 물이 찼다. 💧 +${n}`)}
+  // 부패
+  const rate=S.built.rack?.08:.3,sp=[];
+  Object.keys(ITEMS).forEach(k=>{if(ITEMS[k].spoil&&S.inv[k]>0){const l=Math.min(S.inv[k],Math.floor(S.inv[k]*rate+Math.random()));if(l){S.inv[k]-=l;sp.push(ITEMS[k].i+'×'+l)}}});
+  if(sp.length)L.push('🤢 상해서 버린 음식: '+sp.join(' '));
+  // 회복 / 결핍
+  if(S.food>30&&S.water>30){const h=6+sh*3+(fireOn?3:0);heal(h);L.push(`💤 푹 자서 체력 +${h}`)}
+  if(S.food<=0){hurt(10,'굶주림');L.push('🍽️ 굶주림으로 체력 -10')}
+  if(S.water<=0){hurt(12,'탈수');L.push('🏜️ 탈수로 체력 -12')}
+  if(checkDeath())return;
+  // 30일 달성
+  if(S.day>=30){ending('rescue');return}
+  // 다음 날
+  S.day++;S.time=12;S.weather=S.nextWeather;S.nextWeather=pickWeather(S.day+1);setForecast();S.signalToday=false;
+  L.push(`<br>🌅 <b>${S.day}일차</b> 아침 — 오늘 날씨: ${WEATHER[S.weather].i} ${WEATHER[S.weather].n}`);
+  L.forEach(x=>log(x.replace(/<br>/g,''),'sys'));
+  save();render();
+  modal(`🌙 ${S.day-1}일차 밤이 지나갔다`,L.join('<br>'),[{t:'아침을 맞이한다',fn:showEvent}]);
+}
+
+/* ===== 이벤트 ===== */
+function steal(){
+  const lost=[];['berry','shellfish','fish','meat','cfish','cmeat'].forEach(k=>{const n=S.inv[k]||0;if(n>0){const l=Math.ceil(n/2);S.inv[k]-=l;lost.push(ITEMS[k].i+'×'+l)}});
+  return lost.length?lost.join(' ')+' 을(를) 잃었다.':'다행히 훔쳐갈 식량이 없었다.';
+}
+const EVENTS=[
+ {id:'wreck',i:'🚢',t:'난파선의 잔해',d:'밤새 거친 파도가 해변에 난파선의 잔해를 밀어 올렸다.',ch:[
+  {t:'샅샅이 뒤진다 (⏱2)',run(){spend(2);const m=[gain('wood',3),gain('fiber',2)];if(Math.random()<.4)m.push(gain('metal',1));return '잔해에서 '+m.filter(Boolean).join(', ')+' 획득!'}},
+  {t:'무시한다',run:()=>'위험할지도 모른다. 잔해를 그대로 두고 하루를 시작했다.'}]},
+ {id:'monkey',i:'🐒',t:'원숭이 도둑',d:'원숭이 한 마리가 식량 주머니를 들고 도망친다!',ch:[
+  {t:'쫓아간다',run(){if(Math.random()<.5){hurt(5,'원숭이 추격전');return '넘어졌지만 원숭이가 떨어뜨린 '+gain('coconut',2)+' 획득! 체력 -5'}return '놓치고 말았다... '+steal()}},
+  {t:'내버려 둔다',run:()=>'원숭이는 사라졌다. '+steal()}]},
+ {id:'bottle',i:'🍾',t:'병 속의 편지',d:'해변에 병이 떠밀려왔다. 안에는 낡은 편지가 들어 있다.',ch:[
+  {t:'편지를 읽는다',run(){heal(10);S.explore.rocks=Math.max(S.explore.rocks,2);return '"북쪽 바위언덕을 탐험해 보게. 희망을 잃지 말게." 용기가 솟는다! 체력 +10 (바위언덕 탐험이 쉬워졌다)'}}]},
+ {id:'shroom',i:'🍄',t:'수상한 버섯',d:'숲 입구에 먹음직스러운 버섯이 가득 피어 있다.',ch:[
+  {t:'먹어본다',run(){if(Math.random()<.5){S.food=clamp(S.food+30);return '맛있다! 포만감 +30'}hurt(18,'독버섯');return '독버섯이었다! 체력 -18'}},
+  {t:'먹지 않는다',run:()=>'안전이 최고다. 버섯을 지나쳤다.'}]},
+ {id:'egg',i:'🥚',t:'거북이 알',d:'모래사장에서 거북이 알을 발견했다.',ch:[
+  {t:'가져와서 먹는다',run(){S.food=clamp(S.food+25);return '영양가 높은 알! 포만감 +25'}},
+  {t:'그대로 둔다',run(){heal(5);return '새 생명을 지켜줬다는 뿌듯함에 마음이 따뜻해진다. 체력 +5'}}]},
+ {id:'school',i:'🐟',t:'물고기 떼',d:'해변 근처로 물고기 떼가 몰려왔다!',ch:[
+  {t:'낚시를 시작한다 (⏱2)',run(){spend(2);const n=S.tools.rod?rnd(4,6):rnd(1,2);return '물고기를 잡았다! '+gain('fish',n)+' 획득'}},
+  {t:'지켜만 본다',run:()=>'물고기 떼는 곧 사라졌다.'}]},
+ {id:'boar',i:'🐗',t:'야생 멧돼지',d:'멧돼지가 캠프 근처에서 씩씩거린다!',when:()=>S.day>=3,ch:[
+  {t:'맞서 싸운다',run(){if(S.tools.spear){return '창으로 멧돼지를 쓰러뜨렸다! '+gain('meat',3)+' 획득'}hurt(20,'멧돼지');return '맨손으로는 무리였다! 체력 -20'}},
+  {t:'숨는다 (⏱2)',run(){spend(2);return '멧돼지가 지나갈 때까지 숨어 있었다.'}}]},
+ {id:'fever',i:'🤒',t:'열대 열병',d:'아침부터 오한과 열이 난다...',when:()=>S.day>=4,ch:[
+  {t:'약초를 달여 먹는다',run(){if(has('herb',1)){S.inv.herb--;return '약초 덕분에 금방 나았다. (약초 -1)'}hurt(12,'열병');return '약초가 없다! 열병에 시달렸다. 체력 -12'}},
+  {t:'참고 버틴다',run(){hurt(10,'열병');return '끙끙 앓았다. 체력 -10'}}]},
+ {id:'spring',i:'⛲',t:'맑은 샘물',d:'새소리를 따라가니 맑은 샘이 솟아나고 있다.',ch:[
+  {t:'마음껏 마신다',run(){S.water=clamp(S.water+40);return '꿀맛이다! 수분 +40'}},
+  {t:'물을 담아간다',run(){return '병에 물을 가득 담았다. '+gain('water',3)}}]},
+ {id:'stars',i:'🌠',t:'별이 쏟아지는 새벽',d:'새벽하늘에 유성우가 쏟아진다.',ch:[
+  {t:'소원을 빈다',run(){heal(12);return '마음이 편안해졌다. 체력 +12'}},
+  {t:'구경만 한다',run(){heal(5);return '아름다운 풍경에 잠시 시름을 잊었다. 체력 +5'}}]},
+ {id:'wave',i:'🌊',t:'큰 파도',d:'엄청난 파도가 캠프 쪽으로 밀려온다!',ch:[
+  {t:'서둘러 물건을 옮긴다 (⏱2)',run(){spend(2);return '재빨리 자원을 높은 곳으로 옮겼다. 피해는 없었다.'}},
+  {t:'그냥 둔다',run(){const a=Math.floor((S.inv.wood||0)*.3),b=Math.floor((S.inv.fiber||0)*.3);S.inv.wood-=a;S.inv.fiber-=b;return `파도에 자원이 쓸려갔다... 🪵-${a} 🧵-${b} 잃었다.`}}]},
+ {id:'cocoboom',i:'🥥',t:'코코넛 대풍년',d:'야자나무마다 코코넛이 주렁주렁 열렸다!',ch:[
+  {t:'잔뜩 딴다',run(){return gain('coconut',4)+' 획득!'}}]},
+ {id:'dolphin',i:'🐬',t:'돌고래의 선물',d:'돌고래가 해변 근처로 물고기를 몰아준다.',ch:[
+  {t:'감사히 받는다',run(){return gain('fish',3)+' 획득!'}}]},
+ {id:'crab',i:'🦀',t:'바위게 떼',d:'바위틈에 커다란 게들이 가득하다.',ch:[
+  {t:'잡는다',run(){if(Math.random()<.5){hurt(4,'게 집게');return gain('shellfish',4)+' 획득! 하지만 집게에 물렸다. 체력 -4'}return gain('shellfish',4)+' 획득!'}}]},
+ {id:'chest',i:'🧰',t:'낡은 보물 상자',d:'모래 속에서 녹슨 상자의 모서리가 드러났다.',ch:[
+  {t:'열어본다 (⏱1)',run(){spend(1);const m=[gain('metal',2),gain('fiber',3)];if(Math.random()<.4)m.push(gain('water',2));return '상자 안에서 '+m.filter(Boolean).join(', ')+' 획득!'}},
+  {t:'그냥 간다',run:()=>'함정일지도 모른다. 지나쳤다.'}]},
+ {id:'ship',i:'🚢',t:'수평선 위의 배',d:'멀리 수평선에 배 한 척이 지나간다!',when:()=>S.built.signal,ch:[
+  {t:'봉화를 피운다 (나무 2)',run(){if(has('wood',2)){S.inv.wood-=2;S.rescue+=2;return '봉화를 본 선원이 손을 흔들었다! 구조 신호 +2'}return '땔감이 부족하다... 배는 멀어졌다.'}}]},
+ {id:'farship',i:'🚢',t:'멀리 지나가는 배',d:'수평선 너머로 배가 지나가지만 이쪽을 보지 못한다...',when:()=>!S.built.signal&&S.day>=4,ch:[
+  {t:'소리쳐 부른다',run(){S.water=clamp(S.water-10);return '목이 쉬도록 외쳤지만 닿지 않았다. 수분 -10. "봉화가 있었다면..."'}},
+  {t:'봉화를 만들겠다고 다짐한다',run(){return '다음에는 반드시 신호를 보내겠다!'}}]},
+ {id:'sunburn',i:'🌞',t:'강한 햇살',d:'아침부터 햇볕이 너무 따갑다.',when:()=>S.weather==='heat'||S.weather==='clear',ch:[
+  {t:'그늘에서 쉰다 (⏱1)',run(){spend(1);return '그늘에서 열기를 식혔다.'}},
+  {t:'그냥 활동한다',run(){hurt(5,'일사병');return '햇볕에 지쳤다. 체력 -5'}}]},
+ {id:'rainbow',i:'🌈',t:'무지개',d:'비가 갠 하늘에 커다란 무지개가 떴다.',ch:[
+  {t:'감상한다',run(){heal(8);return '희망이 샘솟는다! 체력 +8'}}]}
+];
+function showEvent(){
+  if(S.over)return;
+  let pool=EVENTS.filter(e=>(!e.when||e.when())&&!S.usedEv.includes(e.id));
+  if(!pool.length){S.usedEv=[];pool=EVENTS.filter(e=>!e.when||e.when())}
+  const ev=pick(pool);S.usedEv.push(ev.id);
+  modal(`${ev.i} ${ev.t}`,ev.d,ev.ch.map(c=>({t:c.t,fn:()=>{
+    const r=c.run();log(`${ev.i} [${ev.t}] ${r}`);
+    modal(`${ev.i} ${ev.t}`,r.replace(/\n/g,'<br>'),[{t:'확인',fn:()=>{
+      if(checkDeath())return;
+      if(S.time<=0)endDay();else{save();render()}
+    }}]);
+  }})));
+}
+
+/* ===== 엔딩 ===== */
+function ending(type){
+  S.over=true;localStorage.removeItem(KEY);
+  const b=S.built,tl=S.tools.axe+S.tools.pick+S.tools.rod+S.tools.spear;
+  const score=S.day*10+S.hp*2+(b.fire+b.barrel+b.rack+b.signal+b.raft)*30+b.shelter*40+tl*10+S.rescue*20+(type==='escape'?200:0);
+  let title,txt,grade;
+  if(type==='escape'){title='🛶 뗏목 탈출 성공!';grade='S';txt='직접 만든 뗏목으로 거친 바다를 건너 문명 세계로 돌아왔습니다. 진정한 생존의 달인!'}
+  else{
+    if(b.signal&&S.rescue>=3){grade='S';title='🚁 완벽한 구조!';txt='당신이 피운 봉화를 발견한 구조대가 정확하게 섬으로 찾아왔습니다!'}
+    else if(b.signal){grade='A';title='🚢 구조선 도착!';txt='봉화 덕분에 구조선이 섬을 발견했습니다. 30일을 버텨냈습니다!'}
+    else{grade='B';title='🛟 간신히 발견되다';txt='지나가던 배가 우연히 당신을 발견했습니다. 신호 수단이 있었다면 더 빨랐을 텐데요.'}
+  }
+  render();
+  modal(title,`${txt}<br><br>⏳ 생존 일수: <b>${S.day}일</b><br>❤️ 남은 체력: <b>${Math.round(S.hp)}</b><br>🏠 집 단계: <b>${b.shelter}</b> / 🚩 구조 신호: <b>${S.rescue}회</b><br><br>등급: <b style="font-size:24px;color:#ffd54f">${grade}</b><br>점수: <b>${score}</b>`,[{t:'다시 도전',fn:newGame}]);
+}
+
+/* ===== 렌더 ===== */
+function render(){
+  const w=WEATHER[S.weather],b=S.built;
+  $('sc-day').textContent=`Day ${S.day} / 30`;
+  $('sc-w').textContent=`${w.i} ${w.n} | 내일 예보: ${WEATHER[S.forecast].i}`;
+  const sc=$('scene');sc.className='w-'+S.weather+(S.weather==='rain'||S.weather==='storm'?' rain':'')+(S.weather==='storm'?' storm':'');
+  sc.id='scene';
+  const art=['🏝️',['','⛺','🛖','🏠'][b.shelter],b.fire?'🔥':'',b.barrel?'🪣':'',b.rack?'🧺':'',b.signal?'🚩':'',b.raft?'🛶':'',S.weather==='heat'?'':''].join('');
+  $('sc-art').textContent='🌴'+art+'🌴';
+  const set=(k,v)=>{$('v-'+k).textContent=Math.round(v)+'/100';$('b-'+k).style.width=v+'%'};
+  set('hp',S.hp);set('food',S.food);set('water',S.water);
+  $('v-time').textContent=`${6+(12-S.time)}:00 (${S.time}h)`;$('b-time').style.width=(S.time/12*100)+'%';
+  // 장소
+  $('areas').innerHTML='';
+  Object.entries(AREAS).forEach(([k,a])=>{
+    const locked=a.lock&&a.lock();const bt=document.createElement('button');
+    bt.textContent=locked?'🔒 ???':`${a.i} ${a.n}`;bt.className=S.area===k?'on':'';bt.disabled=!!locked;bt.title=locked?a.lt:'';
+    bt.onclick=()=>{S.area=k;render()};$('areas').appendChild(bt)});
+  const ar=AREAS[S.area];
+  let ex='';if(S.area==='forest')ex=` (탐험도 ${Math.min(S.explore.forest,3)}/3)`;if(S.area==='rocks')ex=` (탐험도 ${Math.min(S.explore.rocks,3)}/3)`;
+  $('adesc').textContent=ar.d+ex+(S.weather==='storm'?' ⚠️ 폭풍: 야외 행동 +1시간, 부상 위험!':'');
+  $('acts').innerHTML='';
+  ACTIONS.filter(a=>a.area===S.area).forEach(a=>{
+    const cost=a.cost+((S.weather==='storm'&&a.out)?1:0);
+    const reason=a.req?a.req():null;
+    const bt=document.createElement('button');bt.className='act';
+    const dis=S.over||(!a.special&&(S.time<cost||reason));
+    bt.disabled=!!dis;
+    bt.innerHTML=`<span>${a.i} ${a.n}<small>${reason||a.d}</small></span><span class="c">${a.special?'':'⏱'+cost}</span>`;
+    bt.onclick=()=>perform(a.id);$('acts').appendChild(bt)});
+  // 사이드
+  $('tab-inv').className=S.tab==='inv'?'on':'';$('tab-craft').className=S.tab==='craft'?'on':'';
+  const side=$('side');
+  if(S.tab==='inv'){
+    let h='<div class="inv">';
+    Object.entries(ITEMS).forEach(([k,it])=>{
+      const n=S.inv[k]||0;
+      h+=`<div class="it ${n?'':'zero'}"><span>${it.i} ${it.n} <b>${n}</b></span>${it.use&&n?`<button onclick="useItem('${k}')">사용</button>`:''}</div>`});
+    h+='</div><div class="status">';
+    const tn=['없음','돌','금속'];
+    h+=`🪓 도끼: ${tn[S.tools.axe]} · ⛏️ 곡괭이: ${tn[S.tools.pick]}<br>🎣 낚싯대: ${S.tools.rod?'있음':'없음'} · 🏹 창: ${S.tools.spear?'있음':'없음'}<br>`;
+    h+=`🏠 집: ${['없음','움막','통나무집','석조집'][b.shelter]} · 🔥 모닥불: ${b.fire?'있음':'없음'}<br>🪣 빗물통: ${b.barrel?'있음':'없음'} · 🧺 건조대: ${b.rack?'있음':'없음'}<br>🚩 봉화: ${b.signal?'있음 (신호 '+S.rescue+'회)':'없음'} · 🛶 뗏목: ${b.raft?'있음':'없음'}`;
+    h+='</div>';side.innerHTML=h;
+  }else{
+    let h='';const done=[];
+    RECIPES.forEach(r=>{
+      if(r.done()){done.push(r);return}
+      if(!r.avail())return;
+      const costs=Object.entries(r.cost).map(([k,n])=>`<span class="${has(k,n)?'ok':'no'}">${ITEMS[k].i}${(S.inv[k]||0)}/${n}</span>`).join(' ');
+      h+=`<div class="rc"><div class="t"><span>${r.i} <b>${r.n}</b></span><button ${canCraft(r)&&!S.over?'':'disabled'} onclick="craft('${r.id}')">만들기 ⏱${r.t}</button></div><div class="d">${r.d}</div><div class="cs">${costs}</div></div>`});
+    if(!h)h='<div class="d" style="color:#b0bec5;font-size:13px">지금 만들 수 있는 것이 없습니다.</div>';
+    if(done.length)h+='<div style="margin-top:8px;font-size:12px;color:#b0bec5">✅ 완료한 제작</div>'+done.map(r=>`<span class="done">${r.i} ${r.n}</span>`).join('');
+    side.innerHTML=h;
+  }
+  $('log').innerHTML=S.log.map(l=>`<div class="${l.t||''}">${l.m.replace(/\n/g,'<br>')}</div>`).join('');
+}
+
+/* ===== 시작 ===== */
+if(load()&&!S.over){render();log('💾 저장된 게임을 불러왔습니다.','sys');render()}else newGame();
+</script>
+</body>
+</html>
